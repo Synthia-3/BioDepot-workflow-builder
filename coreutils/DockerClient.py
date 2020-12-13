@@ -14,6 +14,7 @@ class ConsoleProcess:
     #note that the logBaseDir is hard coded under /data/.bwb for now - this should be changed for whatever the primary volume mapping is
     # subclass that attaches a process and pipes the output to textedit widget console widget
     def __init__(self, console=None, errorHandler=None, finishHandler=None):
+        self.namespace=None
         self.threadNumber=0
         self.processDir="proc.{}".format(uuid.uuid4().hex)
         self.startupOnly=False
@@ -165,8 +166,9 @@ class ConsoleProcess:
         self.process.waitForFinished()
         self.scheduleLog(job_id)
         
-    def start(self,cmds,schedule=False):
+    def start(self,cmds,namespace=None,schedule=False):
         self.cleanup()
+        self.namespace=namespace
         if schedule:
             sys.stderr.write('runScheduler.sh {}\n'.format(cmds))
             self.process.start('runScheduler.sh',cmds)
@@ -177,10 +179,19 @@ class ConsoleProcess:
             cmds.insert(0,self.processDir)
             self.writeMessage('runDockerJob.sh {}'.format(cmds))
             self.process.start('runDockerJob.sh',cmds)
+            
+    def getData(self):
+        #will return a list - this will get reduced if iterated
+        newData=[]
+        dirs1=subprocess.run(['find','/tmp/.bwb{}'.format(self.namespace)], stdout=subprocess.PIPE).stdout.decode('utf-8').splitlines()        
+        print(dirs1)
+        dirs=subprocess.run(['find','/tmp/.bwb{}/out'.format(self.namespace), '-mindepth', '1','-maxdepth', '1','-type', 'd'], stdout=subprocess.PIPE).stdout.decode('utf-8').splitlines()        
+        print(dirs)
         
     def onFinish(self,code,status):
         if self.startupOnly:
             return
+        newData=self.getData()
         if self.finishHandler:
             if not status:
                 status=self.checkForErrors()
@@ -335,6 +346,7 @@ class DockerClient:
         scheduleSettings=None,
         iterateSettings=None,
         iterate=False,
+        data=None
     ):
         tasksJson = []
         count = 0
@@ -407,7 +419,9 @@ class DockerClient:
         scheduleSettings=None,
         iterateSettings=None,
         iterate=False,
+        data=None
     ):
+        namespace=str(uuid.uuid4().hex)[0:19]
         # reset logFile when it is not None - can be "" though - this allows an active reset
         if logFile is not None:
             self.logFile = logFile
@@ -427,7 +441,11 @@ class DockerClient:
         # create container cmds
         # the runDockerJob.sh script takes care of the first part of the docker command and cidfile
         # docker  run -i --rm --init --cidfile=<lockfile>'
-        dockerBaseFlags = ""
+        inputVarDir="/tmp/.bwb{}/in".format(namespace)
+        outputVarDir="/tmp/.bwb{}/out".format(namespace)
+        containerInputVarDir="/tmp/.bwbin".format(namespace)
+        containerOutputVarDir="/tmp/.bwbout".format(namespace)
+        dockerBaseFlags = "-v {}:{} -v {}:{} ".format(inputVarDir,containerInputVarDir,outputVarDir,containerOutputVarDir)
         dockerCmds = []
         if exportGraphics:
             dockerBaseFlags += "-e DISPLAY=:1 -v /tmp/.X11-unix:/tmp/.X11-unix "
@@ -462,8 +480,9 @@ class DockerClient:
 
             consoleProc.startTest(echoStr)
         else:
+            os.system("mkdir -p {} {}".format(inputVarDir,outputVarDir))
             sys.stderr.write("starting runDockerJob.sh\n")
-            consoleProc.start(dockerCmds)
+            consoleProc.start(dockerCmds,namespace=namespace)
 
     def findVolumeMappings(self):
         for c in self.cli.containers():

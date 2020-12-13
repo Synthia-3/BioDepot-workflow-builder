@@ -274,7 +274,7 @@ class BwbGuiElements:
     def enable(self, attr, value):
         sys.stderr.write("checking attr {}\n".format(attr))
         clearLedit = False
-        if value is None or value is "":
+        if value is None or value == "":
             clearLedit = True
         if attr in self._dict:
             sys.stderr.write("found attr in dict {}\n".format(attr))
@@ -1322,7 +1322,7 @@ class OWBwBWidget(widget.OWWidget):
             for element in [rootLedit, browseBtn, patternLedit, findFileCB, findDirCB]:
                 element.setDisabled(True)
         elif type(value) is str or inputType == "str":
-            if value is None or value is "":
+            if value is None or value == "":
                 rootLedit.clear()
             else:
                 rootLedit.setText(value)
@@ -1390,7 +1390,7 @@ class OWBwBWidget(widget.OWWidget):
 
         self.bwbLedit(box, checkbox, ledit, layout=layout, label=pvalue["label"])
         # check if the value is none - then we clear it
-        if getattr(self, pname) is None or getattr(self, pname) is "":
+        if getattr(self, pname) is None or getattr(self, pname) == "":
             ledit.clear()
         self.bgui.add(
             pname,
@@ -2215,6 +2215,10 @@ class OWBwBWidget(widget.OWWidget):
         self.status = "running"
         self.setStatusMessage("Running...")
         sys.stderr.write("cmds are {}\n".format(cmds))
+        if "parameters" in self.data:
+           for k,v in self.data["parameters"].items():
+               if hasattr(self,k):
+                   self.data["parameters"][k]["value"]=getattr(self,k)
         if hasattr(self, "useScheduler") and self.useScheduler:
             self.dockerClient.create_container_external(
                 imageName,
@@ -2229,6 +2233,7 @@ class OWBwBWidget(widget.OWWidget):
                 scheduleSettings=None,
                 iterateSettings=self.iterateSettings,
                 iterate=self.iterate,
+                data=self.data
             )
         else:
             self.dockerClient.create_container_iter(
@@ -2244,6 +2249,7 @@ class OWBwBWidget(widget.OWWidget):
                 scheduleSettings=None,
                 iterateSettings=self.iterateSettings,
                 iterate=self.iterate,
+                data=self.data
             )
         # except BaseException as e:
         # self.bgui.reenableAll(self)

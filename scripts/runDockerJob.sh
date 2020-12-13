@@ -20,12 +20,13 @@ echo "mkdir -p $lockDir"
 mkdir -p $lockDir
 
 errorDir=/tmp/${tempDir}/errors
+varDir=/tmp/${tempDir}/vars
 echo "running job with $NWORKERS threads"
 
 #wait until all the variables i.e. lockDir have been defined
 for ((i=1; i<${#myjobs[@]}; ++i)); do
     cmd="${myjobs[i]}"
-    echo "job $i is docker run -i --rm  --init --cidfile=$lockDir/lock$i/pid.$BASHPID $cmd"
+    echo "job $i is docker run -i --rm  --init --cidfile=$lockDir/lock$i/pid.$BASHPID -v $varDir:/.bwbvars $cmd"
 done
 trap "cleanup ${lockDir} -1 " SIGINT INT TERM
 
