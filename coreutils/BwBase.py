@@ -502,9 +502,9 @@ class OWBwBWidget(widget.OWWidget):
             setattr(self.leditOptionalLayout.layout(), "added", True)
             self.drawOptionalElements()
 
-            self.scheduleBox,scheduleLayout=self.tabs.addBox('Scheduler',minHeight=160)
-            self.scheduleBox.layout().addLayout(self.fileDirScheduleLayout.layout())
-            self.drawScheduleElements()
+        self.scheduleBox,scheduleLayout=self.tabs.addBox('Scheduler',minHeight=160)
+        self.scheduleBox.layout().addLayout(self.fileDirScheduleLayout.layout())
+        self.drawScheduleElements()
 
         # disable connected elements
         for i in self.inputs:
@@ -1321,7 +1321,7 @@ class OWBwBWidget(widget.OWWidget):
                 self.pname = value
             for element in [rootLedit, browseBtn, patternLedit, findFileCB, findDirCB]:
                 element.setDisabled(True)
-        elif type(value) is str or inputType == "str":
+        elif type(value) == str or inputType == "str":
             if value is None or value == "":
                 rootLedit.clear()
             else:
@@ -1629,7 +1629,7 @@ class OWBwBWidget(widget.OWWidget):
             if type(entryList) == list:
                 boxEdit.addItems(entryList)
             else:
-                boxEdit.addItems([entryList])
+                boxEdit.addItems([str(entryList)])
         boxEdit.setDisabled(disabledFlag)
         if elements:
             elements.append(boxEdit)
@@ -2281,12 +2281,15 @@ class OWBwBWidget(widget.OWWidget):
     def getRequiredVols(self):
         # get all the autoMaps
         # the mountpoint is passed because it will be converted later into the global hostpath
+        print ("client mounts are {}\n".format(self.dockerClient.bwbMounts.items()))
         bwbDict = {}
         if "autoMap" in self.data and self.data["autoMap"]:
+            print ("autoMapping")
             for bwbVolume, containerVolume in self.dockerClient.bwbMounts.items():
                 self.hostVolumes[containerVolume] = bwbVolume
                 bwbDict[containerVolume] = bwbVolume
         if "volumeMappings" in self.data and self.data["volumeMappings"]:
+            print ("volume Mapping")
             for mapping in self.data["volumeMappings"]:
                 conVol = mapping["conVolume"]
                 attr = mapping["attr"]
@@ -2574,7 +2577,7 @@ class OWBwBWidget(widget.OWWidget):
                 subs.append(sub)
                 subFlags[sub] = self.iteratedfString(sub)
                 sys.stderr.write("sub is {} flags are {}".format(sub, subFlags[sub]))
-                if len(subFlags[sub]) > maxLen:
+                if (subFlags and len(subFlags[sub]) > maxLen):
                     maxLen = len(subFlags[sub])
         sys.stderr.write("subs are {}\n".format(subs))
 
